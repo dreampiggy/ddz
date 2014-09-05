@@ -80,6 +80,56 @@ int BeginWithRegis(int sock_cli){
     }
 }
 
+
+int BeginWithLogin(int sock_cli){
+    char sendbuf[50], recvbuf[50];
+    puts("天王盖地虎，你的代号是什么？");
+    
+    fscanf(stdin,"%s",sendbuf);
+    while(strlen(sendbuf)==0){
+        puts("什么都不说是how many意思？");
+        fscanf(stdin,"%s",sendbuf);
+    }
+
+    send(sock_cli, sendbuf, sizeof(sendbuf), 0);
+    recv(sock_cli, recvbuf, sizeof(recvbuf), 0);
+    if(strcmp(recvbuf,"inputpassword")==0){
+
+		puts("宝塔镇河妖，报一下你的暗号：");
+        fscanf(stdin,"%s",sendbuf);
+        while(strlen(sendbuf)==0){
+            puts("什么都不说是how many意思？");
+            fscanf(stdin,"%s",sendbuf);
+        }
+
+        send(sock_cli, sendbuf, sizeof(sendbuf), 0);
+        recv(sock_cli, recvbuf, sizeof(recvbuf), 0);
+        if(strcmp(recvbuf,"successlogin")==0){
+			puts("可以进去了");
+            puts("顺便说一下，我肥皂掉了。");
+            return 1;
+		}
+        else if(strcmp(recvbuf, "passwordincorrect")==0){
+			puts("暗号都说错！你难道是皇军派来的奸细？！");
+            return 2;
+		}
+        else{
+            return -1;
+        }
+    }
+    else if(strcmp(recvbuf,"usernameonline")==0){
+		puts("叫这个代号的人刚才已经进去了，你再等等把");
+        return 2;
+    }    
+    else if(strcmp(recvbuf,"usernameexist")==0){
+        puts("没有这个代号");
+        return 2;
+    }
+    else{
+        return -1;
+    }
+}
+
 int main()
 {
     ///定义sockfd
@@ -123,7 +173,25 @@ int main()
             else if(flag==1)
                 break;
         }
+        else if(strcmp(recvbuf,"login")==0){
+            int flag=-1;
+            while(1){
+                flag=BeginWithLogin(sock_cli);
+                if(flag==2)
+                    continue;
+                else
+                    break;
+            }
+            if(flag==0)
+                continue;
+            else if(flag==1)
+                break;
+            else
+                exit(1);
+            }
     }
-    puts("fuck!! you're in !!");
+    printf("\n\n<============一段时间之后============>\n\n\n");
+    puts("捡起了肥皂之后，你终于进来了。");
+    close(sock_cli);
     return 0;
 }
