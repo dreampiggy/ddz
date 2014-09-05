@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "login.cpp"
+#include "usermysql.h"
 using namespace std;
 
 #define MYPORT  8887
@@ -40,6 +40,58 @@ int RegisterUser(int conn){
         }
     }  
     else{
+        return -1;
+    }
+}
+
+int login(int conn){
+    char username[50], password[20];
+    recv(conn, username, sizeof(username), 0);
+    if(strcmp(username, "--exit")==0)
+        return 0;
+
+    int sta0 = UsernameExist(username);
+    if(sta0==1){
+        int sta = UserOnline(username);
+        if(sta==0){
+            send(conn, "inputpassword", sizeof("inputpassword"), 0);
+            recv(conn, password, sizeof(password), 0);
+            int sta2=PasswordCorrect(username, password);
+            if(sta2==1){
+                int sta3=StatusTurnOn(username);
+                if(sta3==1){
+                    send(conn, "successlogin", sizeof("successlogin"), 0);
+                    return 1;
+                }
+                else{
+                    send(conn, "faillogin", sizeof("faillogin"), 0);
+                    return -1;
+                }
+            }
+            else if(sta==0){
+                send(conn, "passwordincorrect", sizeof("passwordincorrect"), 0);
+                return 2;
+            }
+            else{
+                send(conn, "fail", sizeof("fail"), 0);
+                return -1;
+            }
+        }
+        else if(sta==1){
+            send(conn, "usernameonline", sizeof("usernameonline"), 0);
+            return 2;
+        }
+        else{
+            send(conn, "fail", sizeof("fail"), 0);
+            return -1;
+        }
+    }
+    else if(sta0==0){
+        send(conn, "usernameexist", sizeof("usernameexist"), 0);
+        return 2;
+    }
+    else{
+        send(conn, "fail", sizeof("fail"), 0);
         return -1;
     }
 }
@@ -112,11 +164,27 @@ int main(){
             else
                 break;
     	}
+        else if(strcmp(buffer,"2\n")==0){
+            send(conn, "login", sizeof("login"), 0);
+            int flag=-1;
+            while(1){
+                flag=login(conn);
+                if(flag==2)
+                    continue;
+                else
+                    break;
+            }   
+            if(flag==0)
+                continue;
+            else if(flag==1)
+                break;
+            else{
+                exit(1);
+            }
+        }
         else
-            exit(1);
+            break;
     }
-
-    puts("fuck!! you're in !!");
 
     close(conn);
     close(server_sockfd);
